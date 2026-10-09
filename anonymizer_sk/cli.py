@@ -175,6 +175,11 @@ def main(argv=None):
     common(t)
     t.set_defaults(fn=cmd_selftest)
 
+    u = sub.add_parser("ui", help="spustiť grafické rozhranie v prehliadači")
+    u.add_argument("--no-browser", action="store_true", help="neotvárať prehliadač (adresa je v logu)")
+    u.set_defaults(fn=lambda a: __import__("anonymizer_sk.desktop", fromlist=["main"]).main(
+        ["--no-browser"] if a.no_browser else []))
+
     sub.add_parser("entities", help="zoznam typov údajov").set_defaults(
         fn=lambda _: print("\n".join(f"{k:16} {v}" for k, v in ENTITY_LABELS.items())) or 0)
 

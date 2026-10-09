@@ -30,12 +30,16 @@ def collect(inputs: list[str | Path]) -> list[Path]:
 class Anonymizer:
     """Jedna inštancia = jeden beh; všetky súbory zdieľajú tokeny (rovnaká osoba = rovnaký token)."""
 
-    def __init__(self, mode: str, cfg: Config | None = None, vault: Vault | None = None):
+    def __init__(self, mode: str, cfg: Config | None = None, vault: Vault | None = None,
+                 with_context: bool = False):
+        self.with_context = with_context
         self.cfg = cfg or Config()
         self.mode = mode
         self.vault = vault if vault is not None else (Vault() if mode == "reversible" else None)
         self.detector = Detector(self.cfg)
         self.pseudo = Pseudonymizer(mode, self.vault if mode == "reversible" else None, self.cfg.numbered_tokens)
+
+    progress = None   # callback(str) – priebeh pre UI
 
     def anonymize_bytes(self, data: bytes, name: str) -> tuple[bytes, Report]:
         handler = handler_for(name)
@@ -43,7 +47,8 @@ class Anonymizer:
             raise ValueError(f"Nepodporovaný formát: {name}")
         report = Report(file=name, engine=self.detector.engine_name, mode=self.mode)
         planner = Planner(self.detector, self.pseudo, report=report,
-                          vault=self.vault if self.mode == "reversible" else None)
+                          vault=self.vault if self.mode == "reversible" else None, with_context=self.with_context)
+        planner.progress = self.progress
         out = handler.process(data, planner, self.cfg, name=name)
         if self.mode == "reversible" and handler.__name__.endswith(".pdf"):
             self.vault.store_original(out, data)

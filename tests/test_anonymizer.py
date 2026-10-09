@@ -65,8 +65,11 @@ def text_of(data: bytes, name: str) -> str:
         from pdf2image import convert_from_bytes
         from pypdf import PdfReader
 
+        from anonymizer_sk.runtime import configure
+
+        poppler = configure()
         layer = "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(data)).pages)
-        ocr = "\n".join(pytesseract.image_to_string(im) for im in convert_from_bytes(data, dpi=200))
+        ocr = "\n".join(pytesseract.image_to_string(im) for im in convert_from_bytes(data, dpi=200, **poppler))
         return layer + "\n" + ocr
     raise ValueError(name)
 

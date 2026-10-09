@@ -31,9 +31,11 @@ class Report:
     findings: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
 
-    def add(self, where: str, r: Replacement):
-        self.findings.append({"where": where, "entity": r.entity, "score": r.score, "source": r.source,
-                              "token": r.token})
+    def add(self, where: str, r: Replacement, context: str | None = None):
+        item = {"where": where, "entity": r.entity, "score": r.score, "source": r.source, "token": r.token}
+        if context is not None:      # len pre lokálnu kontrolu, nikdy sa nezapisuje do súboru
+            item["context"] = context
+        self.findings.append(item)
 
 
 def _join(segments: list[str], joiners: list[str] | None = None):
@@ -92,9 +94,12 @@ class Planner:
     """Zabalí režim (anonymizácia / obnova), aby handlery formátov boli spoločné."""
 
     def __init__(self, detector: Detector | None = None, pseudo: Pseudonymizer | None = None,
-                 restore_tokens: dict | None = None, report: Report | None = None, vault=None):
+                 restore_tokens: dict | None = None, report: Report | None = None, vault=None,
+                 with_context: bool = False):
         self.detector, self.pseudo, self.restore_tokens = detector, pseudo, restore_tokens
         self.vault = vault
+        self.with_context = with_context
+        self.progress = None          # voliteľný callback(str) pre priebeh dlhých operácií
         self.report = report or Report()
 
     @property
@@ -108,7 +113,11 @@ class Planner:
         for i, reps in enumerate(per_seg):
             for r in reps:
                 if r.token:
-                    self.report.add(f"{where}#{i}" if where else str(i), r)
+                    ctx = None
+                    if self.with_context:
+                        seg = segments[i]
+                        ctx = (seg[max(0, r.start - 60):r.start], seg[r.start:r.end], seg[r.end:r.end + 60])
+                    self.report.add(f"{where}#{i}" if where else str(i), r, ctx)
         return per_seg
 
     def text(self, value: str, where: str = "") -> str:

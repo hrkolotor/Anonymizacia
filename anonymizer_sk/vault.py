@@ -38,7 +38,14 @@ class Vault:
     # ------------------------------------------------------------------ I/O
     @classmethod
     def open(cls, path: str | Path, passphrase: str) -> "Vault":
-        env = json.loads(Path(path).read_text(encoding="utf-8"))
+        return cls.from_bytes(Path(path).read_bytes(), passphrase)
+
+    @classmethod
+    def from_bytes(cls, raw: bytes, passphrase: str) -> "Vault":
+        try:
+            env = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise VaultError("Súbor nie je trezor anonymizer-sk.") from exc
         if env.get("magic") != MAGIC:
             raise VaultError("Súbor nie je trezor anonymizer-sk.")
         kdf = env["kdf"]
@@ -51,6 +58,15 @@ class Vault:
         return cls(json.loads(plain))
 
     def save(self, path: str | Path, passphrase: str) -> None:
+        tmp = Path(str(path) + ".tmp")
+        tmp.write_bytes(self.to_bytes(passphrase))
+        os.replace(tmp, path)
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+
+    def to_bytes(self, passphrase: str) -> bytes:
         salt, nonce = os.urandom(16), os.urandom(12)
         key = _key(passphrase, salt, SCRYPT_N, SCRYPT_R, SCRYPT_P)
         plain = json.dumps(self.data, ensure_ascii=False).encode("utf-8")
@@ -61,13 +77,7 @@ class Vault:
             "nonce": base64.b64encode(nonce).decode(),
             "ciphertext": base64.b64encode(AESGCM(key).encrypt(nonce, plain, MAGIC.encode())).decode(),
         }
-        tmp = Path(str(path) + ".tmp")
-        tmp.write_text(json.dumps(env), encoding="utf-8")
-        os.replace(tmp, path)
-        try:
-            os.chmod(path, 0o600)
-        except OSError:
-            pass
+        return json.dumps(env).encode("utf-8")
 
     # ------------------------------------------------------------------ originály (PDF)
     def store_original(self, anonymized: bytes, original: bytes) -> None:

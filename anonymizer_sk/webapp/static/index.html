@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anonymizácia dokumentov</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="4" rx="1"/><rect x="4" y="14" width="14" height="4" rx="1"/><rect x="4" y="22" width="19" height="4" rx="1"/></svg>
+      <div>
+        <h1>Anonymizácia dokumentov</h1>
+        <p class="local">Spracúva sa iba na tomto počítači. Dokumenty sa nikam neodosielajú.</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Činnosť">
+      <button role="tab" id="tab-anon" aria-selected="true" aria-controls="view-anon">Anonymizovať</button>
+      <button role="tab" id="tab-restore" aria-selected="false" aria-controls="view-restore">Obnoviť originály</button>
+    </nav>
+    <button class="quit" id="quit" type="button">Ukončiť aplikáciu</button>
+  </div>
+</header>
+
+<main>
+  <!-- ======================= ANONYMIZÁCIA ======================= -->
+  <section id="view-anon" role="tabpanel" aria-labelledby="tab-anon">
+
+    <article class="step" id="step-files">
+      <h2><span class="num" aria-hidden="true">1</span>Dokumenty</h2>
+      <div class="drop" id="drop-anon" tabindex="0" role="button" aria-describedby="drop-anon-hint">
+        <p class="drop-title">Pretiahnite sem dokumenty</p>
+        <p class="drop-hint" id="drop-anon-hint">Word (.docx), PDF vrátane skenov, e-maily (.eml) a text (.txt). Môžete pridať aj celý priečinok.</p>
+        <span class="btn btn-quiet">Vybrať súbory</span>
+        <input type="file" id="pick-anon" multiple accept=".docx,.pdf,.eml,.txt,.md,.csv" hidden>
+      </div>
+      <ul class="files" id="files-anon" aria-live="polite"></ul>
+      <p class="error" id="err-files" role="alert" hidden></p>
+      <div class="actions">
+        <button class="btn btn-primary" id="scan" type="button" disabled>Vyhľadať osobné údaje</button>
+      </div>
+    </article>
+
+    <article class="step" id="step-review" hidden>
+      <h2><span class="num" aria-hidden="true">2</span>Kontrola nájdených údajov</h2>
+      <div class="working" id="scan-working" hidden><span class="spinner" aria-hidden="true"></span><span id="scan-progress" aria-live="polite">Hľadám osobné údaje…</span></div>
+      <div id="review" hidden>
+        <p class="review-lead" id="review-lead"></p>
+        <p class="review-help">Všetko zaškrtnuté sa v dokumentoch nahradí kódom ako na ukážke vpravo. Zrušte zaškrtnutie pri tom, čo nie je osobný údaj – ponechá sa vo všetkých výskytoch.</p>
+        <div class="filters" role="group" aria-label="Filter">
+          <button type="button" class="chip" data-filter="all" aria-pressed="true">Všetko</button>
+          <button type="button" class="chip" data-filter="check" aria-pressed="false" id="chip-check">Na overenie</button>
+        </div>
+        <div id="groups"></div>
+        <details class="add">
+          <summary>Chýba niečo? Doplniť výraz na skrytie</summary>
+          <form id="add-form" class="add-form">
+            <label class="field"><span>Výraz presne ako v dokumente</span><input id="add-text" autocomplete="off" required></label>
+            <label class="field"><span>Typ</span>
+              <select id="add-entity">
+                <option value="OSOBA">Meno osoby</option><option value="ADRESA">Adresa</option>
+                <option value="ORGANIZACIA">Organizácia</option><option value="VLASTNE" selected>Iný údaj</option>
+              </select></label>
+            <button class="btn btn-quiet" type="submit">Doplniť</button>
+          </form>
+          <ul class="added" id="added"></ul>
+        </details>
+        <ul class="warnings" id="warnings-scan"></ul>
+      </div>
+      <p class="error" id="err-scan" role="alert" hidden></p>
+    </article>
+
+    <article class="step" id="step-output" hidden>
+      <h2><span class="num" aria-hidden="true">3</span>Anonymizácia</h2>
+      <fieldset class="modes" id="modes">
+        <legend>Bude potrebné vrátiť pôvodné údaje?</legend>
+        <label class="mode">
+          <input type="radio" name="mode" value="reversible">
+          <span class="mode-title">Áno, vratne</span>
+          <span class="mode-text">Vznikne aj zašifrovaný súbor trezoru. S ním a s heslom sa dajú originály kedykoľvek obnoviť.</span>
+        </label>
+        <label class="mode">
+          <input type="radio" name="mode" value="irreversible">
+          <span class="mode-title">Nie, natrvalo</span>
+          <span class="mode-text">Pôvodné údaje sa nikde neuložia a nedajú sa obnoviť. Odstránia sa aj autori a metadáta.</span>
+        </label>
+      </fieldset>
+      <div class="pass" id="pass" hidden>
+        <label class="field"><span>Heslo k trezoru (aspoň 12 znakov)</span><input type="password" id="pw1" autocomplete="new-password" minlength="12"></label>
+        <label class="field"><span>Heslo znova</span><input type="password" id="pw2" autocomplete="new-password"></label>
+        <p class="hint">Heslo sa nikam neukladá. Ak ho zabudnete, originály sa už obnoviť nedajú.</p>
+      </div>
+      <p class="error" id="err-process" role="alert" hidden></p>
+      <div class="actions">
+        <button class="btn btn-primary" id="process" type="button">Anonymizovať dokumenty</button>
+      </div>
+      <div class="working" id="process-working" hidden><span class="spinner" aria-hidden="true"></span><span id="process-progress" aria-live="polite">Anonymizujem…</span></div>
+    </article>
+
+    <article class="step step-done" id="step-done" hidden>
+      <h2>Hotovo</h2>
+      <p class="done-lead" id="done-lead"></p>
+      <ul class="tally" id="tally"></ul>
+      <div class="downloads">
+        <a class="btn btn-primary" id="dl-result" href="#">Stiahnuť dokumenty (.zip)</a>
+        <a class="btn btn-vault" id="dl-vault" href="#" hidden>Stiahnuť trezor</a>
+      </div>
+      <p class="vault-note" id="vault-note" hidden>Trezor uložte oddelene od anonymizovaných dokumentov, napríklad na zabezpečené miesto v sieti. Kto má trezor aj heslo, vidí pôvodné údaje. Bez trezoru sa originály obnoviť nedajú.</p>
+      <ul class="warnings" id="warnings-done"></ul>
+      <p class="check-note">Pred odoslaním dokumenty prelistujte. Žiadne automatické vyhľadávanie nenájde všetko.</p>
+      <div class="actions">
+        <button class="btn btn-quiet" id="again" type="button">Spracovať ďalšie dokumenty</button>
+      </div>
+    </article>
+  </section>
+
+  <!-- ======================= OBNOVA ======================= -->
+  <section id="view-restore" role="tabpanel" aria-labelledby="tab-restore" hidden>
+    <article class="step">
+      <h2>Obnovenie pôvodných údajov</h2>
+      <p class="lead-small">Pridajte anonymizované dokumenty a súbor trezoru, ktorý vznikol pri vratnej anonymizácii. Funguje aj na texte, ktorý z anonymizovaného dokumentu vznikol neskôr, napríklad na zhrnutí uloženom ako .txt.</p>
+      <div class="drop" id="drop-restore" tabindex="0" role="button">
+        <p class="drop-title">Pretiahnite sem dokumenty a trezor</p>
+        <p class="drop-hint">Súbor trezoru končí na .vault</p>
+        <span class="btn btn-quiet">Vybrať súbory</span>
+        <input type="file" id="pick-restore" multiple accept=".docx,.pdf,.eml,.txt,.md,.csv,.vault" hidden>
+      </div>
+      <p class="vault-state" id="vault-state">Trezor zatiaľ nie je pridaný.</p>
+      <ul class="files" id="files-restore" aria-live="polite"></ul>
+      <label class="field narrow"><span>Heslo k trezoru</span><input type="password" id="pw-restore" autocomplete="current-password"></label>
+      <p class="error" id="err-restore" role="alert" hidden></p>
+      <div class="actions">
+        <button class="btn btn-primary" id="restore" type="button" disabled>Obnoviť originály</button>
+      </div>
+      <div class="working" id="restore-working" hidden><span class="spinner" aria-hidden="true"></span><span id="restore-progress" aria-live="polite">Obnovujem…</span></div>
+      <div class="restore-done" id="restore-done" hidden>
+        <p id="restore-lead"></p>
+        <a class="btn btn-primary" id="dl-restore" href="#">Stiahnuť obnovené dokumenty (.zip)</a>
+        <ul class="warnings" id="warnings-restore"></ul>
+      </div>
+    </article>
+  </section>
+</main>
+<div class="closed-overlay" id="closed" hidden>
+  <div><h2>Aplikácia je ukončená</h2><p>Toto okno môžete zavrieť. Nahrané dokumenty boli z pamäte odstránené.</p></div>
+</div>
+</body>
+</html>

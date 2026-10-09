@@ -125,13 +125,16 @@ def _draw_box(draw: ImageDraw.ImageDraw, box, label: str):
 def process(data: bytes, planner, cfg, name: str = "") -> bytes:
     if planner.restoring:
         raise RuntimeError("PDF sa obnovuje z originálu uloženého v trezore (restore_pdf).")
+    from ..runtime import configure
+
+    poppler = configure()
     dpi, scale = cfg.pdf_dpi, cfg.pdf_dpi / 72.0
     lang = ocr_lang(cfg.ocr_lang)
 
     pages_words, images = [], []
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for i, page in enumerate(pdf.pages):
-            img = convert_from_bytes(data, dpi=dpi, first_page=i + 1, last_page=i + 1)[0].convert("RGB")
+            img = convert_from_bytes(data, dpi=dpi, first_page=i + 1, last_page=i + 1, **poppler)[0].convert("RGB")
             words = _text_words(page) if cfg.pdf_ocr != "always" else []
             has_text = sum(len(w.text) for w in words) >= 20
             page_area = float(page.width * page.height) or 1.0
@@ -146,6 +149,8 @@ def process(data: bytes, planner, cfg, name: str = "") -> bytes:
                     planner.report.warnings.append(f"{name}: strana {i + 1} spracovaná cez OCR ({lang}).")
             pages_words.append(words)
             images.append(img)
+            if planner.progress:
+                planner.progress(f"{name}: strana {i + 1} z {len(pdf.pages)}")
 
     texts, ranges = zip(*[_page_text(w) for w in pages_words]) if pages_words else ((), ())
     per_page = planner.plan(list(texts), where="strana")
@@ -172,9 +177,13 @@ def process(data: bytes, planner, cfg, name: str = "") -> bytes:
 
 
 def _add_page(writer: PdfWriter, img: Image.Image, dpi: int, lang: str | None):
+    pdf_bytes = None
     if lang:
-        pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, lang=lang, extension="pdf", config=f"--dpi {dpi}")
-    else:
+        try:
+            pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, lang=lang, extension="pdf", config=f"--dpi {dpi}")
+        except Exception as exc:  # napr. chýbajúci tessdata/pdf.ttf – stránka bude bez textovej vrstvy
+            log.warning("OCR textová vrstva sa nevytvorila: %s", exc)
+    if pdf_bytes is None:
         buf = io.BytesIO()
         img.save(buf, format="PDF", resolution=dpi)
         pdf_bytes = buf.getvalue()

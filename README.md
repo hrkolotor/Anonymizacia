@@ -28,6 +28,36 @@ Trezor ukladajte **oddelene** od anonymizovaných súborov; kto má oboje aj hes
 
 Obnova funguje aj na texte, ktorý vznikol z anonymizovaného dokumentu, napr. na zhrnutí od LLM s tokenmi `[OSOBA_001]`: uložte ho ako .txt a spustite `restore`.
 
+## Desktopová verzia (Windows .exe)
+
+Pre bežných používateľov je určené grafické rozhranie, ktoré sa otvorí v prehliadači, no beží výlučne na danom počítači (`127.0.0.1`, prístup chránený náhodným tokenom). Postup v rozhraní:
+
+1. Pretiahnuť dokumenty (aj celý priečinok).
+2. Skontrolovať nájdené údaje. Údaje sú zoskupené podľa osoby vrátane všetkých gramatických tvarov, každý s ukážkou kontextu. Zrušením zaškrtnutia sa údaj ponechá, chýbajúci výraz sa dá doplniť.
+3. Zvoliť režim **vratne** (heslo + súbor trezoru) alebo **natrvalo**.
+4. Stiahnuť ZIP s dokumentmi a protokolom, pri vratnom režime aj trezor.
+
+Na samostatnej karte sa obnovujú originály: anonymizované dokumenty + trezor + heslo.
+Dokumenty sa držia iba v pamäti. Aplikácia sa ukončí po zatvorení okna alebo po 3 minútach bez aktivity a druhé spustenie len otvorí už bežiace okno.
+
+Vyskúšanie bez inštalácie: `python -m anonymizer_sk ui`
+
+### Zostavenie inštalátora
+
+Na Windows s Pythonom 3.12 (64-bit):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging\build.ps1
+```
+
+Skript nainštaluje závislosti, pribalí Tesseract (so slovenčinou) a Poppler, spustí testy, zostaví `Anonymizacia.exe` (PyInstaller), overí, že odpovedá, a vytvorí `dist\Anonymizacia-0.1.0-setup.exe` (Inno Setup). Inštalátor nevyžaduje práva správcu a vytvorí zástupcu v ponuke Štart a voliteľne na ploche.
+Rovnaký postup beží v GitHub Actions (`.github/workflows/build-windows.yml`): po pushnutí tagu `v*` alebo ručnom spustení vznikne inštalátor ako artefakt.
+
+Bez podpisu certifikátom zobrazí Windows SmartScreen varovanie „Neznámy vydavateľ“. Na nasadenie vo firme odporúčam podpísať: `build.ps1 -SignCert firma.pfx -SignPassword ...`.
+Nastavenia (prah, zoznamy výrazov) môže správca nasadiť ako `%LOCALAPPDATA%\anonymizer-sk\config.yaml` (vzor `config.example.yaml`).
+
+Desktopová verzia 0.1 používa slovenské pravidlá bez Presidia a NER modelu, teda časť pokrytú testami. NER doplníme cez ONNX Runtime (inštalátor tak narastie asi o 150 až 250 MB, nie o 1,5 GB ako s torch), keď sa overí na reálnych dokumentoch.
+
 ## Čo sa rozpoznáva
 
 | Typ | Ako |
@@ -68,7 +98,10 @@ Prečo nie Presidio Anonymizer: náhrady treba premietnuť do runov vo Worde, do
 **Otestované** (8/8 testov, `python tests/test_anonymizer.py`, s `--engine rules`):
 validátory, detekcia, oba režimy na TXT, DOCX, textovom PDF, skenovanom PDF a EML s prílohami. Testy kontrolujú, že vo výstupe nezostal žiadny z originálov (vrátane OCR výstupného PDF), a že obnova z trezoru vráti pôvodný obsah.
 
-**Neotestované, treba overiť u vás** (v prostredí, kde kód vznikol, boli PyPI aj Hugging Face blokované):
+Rozhranie má vlastný end-to-end test v reálnom prehliadači (`python tests/test_ui.py`, Playwright + Chromium). Test nahrá súbory, ponechá jeden nález, doplní výraz, anonymizuje vratne, stiahne výsledok, skontroluje, že v ňom nič nezostalo, overí odmietnutie zlého hesla a obnoví originály. Overené je aj ukončenie aplikácie po zatvorení okna či pri nečinnosti, odmietnutie požiadaviek bez tokenu alebo s cudzou hlavičkou Host a správanie pri druhom spustení.
+
+**Neotestované, treba overiť u vás** (v prostredí, kde kód vznikol, boli PyPI aj Hugging Face blokované a nebol tam Windows):
+- `packaging/build.ps1`, PyInstaller spec, Inno Setup a GitHub Actions workflow, teda samotné zostavenie .exe,
 - `presidio_engine.py`, teda napojenie na Presidio s prázdnym spaCy modelom „sk“,
 - `ner.py` so SlovakBERT NER, hlavne mapovanie labelov `LABEL_n` a výsledky na reálnych textoch,
 - OCR so slovenčinou (`slk`); testy bežali s `eng`, čo je pomalšie a menej presné na diakritike,
