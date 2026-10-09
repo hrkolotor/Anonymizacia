@@ -1,0 +1,23 @@
+# Jadro
+presidio-analyzer>=2.2.360
+spacy>=3.7
+pdfplumber>=0.11
+pypdf>=4.0
+pdf2image>=1.17
+pytesseract>=0.3.10
+Pillow>=10.0
+lxml>=5.0
+cryptography>=42.0
+PyYAML>=6.0
+
+# NER model pre mená (voliteľné, ale odporúčané; ~500 MB model, beží lokálne)
+transformers>=4.40
+torch>=2.2
+
+# Len pre testy / generovanie vzoriek
+python-docx>=1.1
+reportlab>=4.0
+
+# Systémové balíky (nie pip):
+#   tesseract-ocr + tesseract-ocr-slk   (OCR skenov; Windows: UB-Mannheim inštalátor + slk.traineddata)
+#   poppler-utils                       (pdftoppm pre pdf2image; Windows: poppler binárky v PATH)

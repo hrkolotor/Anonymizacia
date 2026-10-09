@@ -1,0 +1,33 @@
+# Skopírujte ako config.yaml a použite:  python -m anonymizer_sk anonymize ... --config config.yaml
+
+# Minimálne skóre nálezu (0-1). Nižšie = viac nálezov, viac falošných poplachov.
+threshold: 0.5
+
+# auto = Presidio ak je nainštalované, inak len pravidlá
+# presidio | rules | rules+ner
+engine: auto
+ner_model: crabz/slovakbert-ner
+
+entities:
+  # predvolene je zapnuté všetko okrem ORGANIZACIA a LOKALITA
+  enable: []            # napr. [ORGANIZACIA]
+  disable: []           # napr. [ICO, DIC] ak IČO firiem nechcete skrývať
+
+# Výrazy, ktoré sa nikdy neanonymizujú (napr. vlastná firma, sudca v rozhodnutí ...)
+allow_list:
+  - Slovenská sporiteľňa
+
+# Výrazy, ktoré sa anonymizujú vždy (klienti, interné kódy, prezývky ...)
+deny_list:
+  - text: Projekt Orol
+    entity: VLASTNE
+
+# OCR
+ocr_lang: slk+eng
+pdf_dpi: 200            # vyššie = presnejšie OCR, väčšie súbory
+pdf_ocr: auto           # auto | always | never
+pdf_text_layer: true    # výstupné PDF bude vyhľadávateľné
+
+# Trvalý režim: [OSOBA_001] (true) alebo len [OSOBA] (false)
+numbered_tokens: true
+propagate_names: true
