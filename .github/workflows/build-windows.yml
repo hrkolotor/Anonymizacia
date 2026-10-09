@@ -17,6 +17,8 @@ jobs:
 
       - name: Zostaviť .exe a inštalátor
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./packaging/build.ps1
 
       - name: Uložiť inštalátor

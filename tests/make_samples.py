@@ -9,7 +9,17 @@ from email.message import EmailMessage
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+FONT_CANDIDATES = ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "C:/Windows/Fonts/arial.ttf",
+                   "C:/Windows/Fonts/segoeui.ttf", "/System/Library/Fonts/Supplemental/Arial.ttf",
+                   "/Library/Fonts/Arial.ttf"]
+
+
+def find_font() -> str:
+    """TrueType font so slovenskou diakritikou (Linux: DejaVu, Windows: Arial, macOS: Arial)."""
+    for path in FONT_CANDIDATES:
+        if Path(path).exists():
+            return path
+    raise FileNotFoundError("Nenašiel sa font s diakritikou (DejaVu Sans alebo Arial).")
 
 
 # ------------------------------------------------------------ platné fiktívne hodnoty
@@ -125,7 +135,7 @@ def make_pdf(path: Path):
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.pdfgen import canvas
 
-    pdfmetrics.registerFont(TTFont("DejaVu", FONT))
+    pdfmetrics.registerFont(TTFont("DejaVu", find_font()))
     c = canvas.Canvas(str(path), pagesize=A4)
     c.setAuthor("Ján Novák")
     y = 800
@@ -157,8 +167,13 @@ def make_scan(src_pdf: Path, path: Path):
     from pdf2image import convert_from_path
     from PIL import ImageFilter
 
+    sys.path.insert(0, str(ROOT.parent))
+    from anonymizer_sk.runtime import configure
+
+    poppler = configure()          # na Windows: Poppler z build/tools alebo ANONYMIZER_POPPLER
+
     pages = [im.convert("L").rotate(0.4, fillcolor=255, expand=False).filter(ImageFilter.GaussianBlur(0.4))
-             for im in convert_from_path(str(src_pdf), dpi=200)]
+             for im in convert_from_path(str(src_pdf), dpi=200, **poppler)]
     pages[0].save(path, save_all=True, append_images=pages[1:], resolution=200)
 
 

@@ -28,7 +28,12 @@ WizardStyle=modern
 CloseApplications=yes
 
 [Languages]
+; slovenčina, ak ju daná verzia Inno Setup obsahuje, inak angličtina
+#if FileExists(AddBackslash(CompilerPath) + "Languages\Slovak.isl")
 Name: "sk"; MessagesFile: "compiler:Languages\Slovak.isl"
+#else
+Name: "en"; MessagesFile: "compiler:Default.isl"
+#endif
 
 [Tasks]
 Name: "desktopicon"; Description: "Vytvoriť zástupcu na ploche"; GroupDescription: "Zástupcovia:"

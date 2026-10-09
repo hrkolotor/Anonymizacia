@@ -18,6 +18,8 @@ param(
     [string]$SignPassword = ""
 )
 $ErrorActionPreference = "Stop"
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONUTF8 = "1"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 $Build = Join-Path $Root "build"
@@ -69,8 +71,9 @@ foreach ($lang in @("eng", "slk", "osd")) {
 Step "Poppler"
 $PopDst = Join-Path $Tools "poppler"
 if (-not (Test-Path (Join-Path $PopDst "bin\pdftoppm.exe"))) {
-    $rel = Invoke-RestMethod "https://api.github.com/repos/oschwartz10612/poppler-windows/releases/latest" `
-        -Headers @{ "User-Agent" = "anonymizer-build" }
+    $headers = @{ "User-Agent" = "anonymizer-build" }
+    if ($env:GITHUB_TOKEN) { $headers["Authorization"] = "Bearer $env:GITHUB_TOKEN" }   # limit API v GitHub Actions
+    $rel = Invoke-RestMethod "https://api.github.com/repos/oschwartz10612/poppler-windows/releases/latest" -Headers $headers
     $asset = $rel.assets | Where-Object { $_.name -like "*.zip" } | Select-Object -First 1
     $zip = Join-Path $Build "poppler.zip"
     New-Item -ItemType Directory -Force $Build | Out-Null

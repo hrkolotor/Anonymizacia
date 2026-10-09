@@ -32,8 +32,9 @@ _SAMPLES = None
 def samples() -> Path:
     global _SAMPLES
     if _SAMPLES is None:
-        _SAMPLES = Path(tempfile.mkdtemp(prefix="anon_samples_"))
-        M.main(_SAMPLES)
+        target = Path(tempfile.mkdtemp(prefix="anon_samples_"))
+        M.main(target)              # pri chybe sa _SAMPLES nenastaví a každý test zlyhá zreteľne
+        _SAMPLES = target
     return _SAMPLES
 
 

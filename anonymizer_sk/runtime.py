@@ -43,7 +43,7 @@ def configure() -> dict:
         pytesseract.pytesseract.tesseract_cmd = tess
         tessdata = Path(tess).parent / "tessdata"
         if tessdata.exists():
-            os.environ.setdefault("TESSDATA_PREFIX", str(tessdata))
+            os.environ["TESSDATA_PREFIX"] = str(tessdata)
 
     poppler = os.environ.get("ANONYMIZER_POPPLER")
     if not poppler and (tools / "poppler" / "bin").exists():
