@@ -100,8 +100,10 @@ validátory, detekcia, oba režimy na TXT, DOCX, textovom PDF, skenovanom PDF a 
 
 Rozhranie má vlastný end-to-end test v reálnom prehliadači (`python tests/test_ui.py`, Playwright + Chromium). Test nahrá súbory, ponechá jeden nález, doplní výraz, anonymizuje vratne, stiahne výsledok, skontroluje, že v ňom nič nezostalo, overí odmietnutie zlého hesla a obnoví originály. Overené je aj ukončenie aplikácie po zatvorení okna či pri nečinnosti, odmietnutie požiadaviek bez tokenu alebo s cudzou hlavičkou Host a správanie pri druhom spustení.
 
-**Neotestované, treba overiť u vás** (v prostredí, kde kód vznikol, boli PyPI aj Hugging Face blokované a nebol tam Windows):
-- `packaging/build.ps1`, PyInstaller spec, Inno Setup a GitHub Actions workflow, teda samotné zostavenie .exe,
+Zostavenie na Windows (GitHub Actions, `windows-latest`) prechádza: testy so slovenským OCR, PyInstaller, kontrola, že `Anonymizacia.exe` odpovedá, a Inno Setup. Inštalátor sa stiahne ako artefakt *Anonymizacia-setup*.
+
+**Neotestované, treba overiť u vás** (v prostredí, kde kód vznikol, boli PyPI aj Hugging Face blokované):
+- inštalácia a používanie `setup.exe` na bežnom počítači (SmartScreen, antivírus, rôzne verzie Windows),
 - `presidio_engine.py`, teda napojenie na Presidio s prázdnym spaCy modelom „sk“,
 - `ner.py` so SlovakBERT NER, hlavne mapovanie labelov `LABEL_n` a výsledky na reálnych textoch,
 - OCR so slovenčinou (`slk`); testy bežali s `eng`, čo je pomalšie a menej presné na diakritike,
