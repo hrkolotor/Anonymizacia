@@ -1,0 +1,27 @@
+name: Windows inštalátor
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Zostaviť .exe a inštalátor
+        shell: pwsh
+        run: ./packaging/build.ps1
+
+      - name: Uložiť inštalátor
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anonymizacia-setup
+          path: dist/Anonymizacia-*-setup.exe
+          retention-days: 30
